@@ -6,9 +6,9 @@ def obtener_resultado2():
         db = sqlite3.connect("linioexp_parcial.db")
         lista_resultado = None
         cursor = db.cursor()
-        query = "SELECT * FROM pedido, cliente WHERE pedido.id_cliente = cliente.id_cliente AND pedido.distrito = 'CALLAO'"
+        query = "SELECT cliente.* FROM pedido, cliente WHERE pedido.id_cliente = cliente.id_cliente AND pedido.distrito = 'CALLAO'"
         cursor.execute(query)
-        # Se espera un solo resultado
+        #Se esperan varios resultados y no se sabe la cantidad, por lo tanto, se usa fetchall
         lista_resultado = cursor.fetchall()
     except Exception as e:
         raise e
