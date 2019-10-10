@@ -9,46 +9,73 @@ class Cliente(Usuario):
     def __init__(self, dni: str = None, nombres: str = None, ape_pat: str = None, ape_mat: str = None,
                  genero: str = None, fecha_nac: datetime = None, fecha_creacion: datetime = None,
                  estado: str = None, email: str = None, password: str = None, preferencias: list = None):
-        self.referencias = preferencias
-        self.email = email
-        self.password = password
-        self.dni = dni
-        self.nombres = nombres
-        self.apellido_paterno = ape_pat
-        self.apellido_materno = ape_mat
-        self.genero = genero
-        self.fecha_nacimiento = fecha_nac
-        fecha_creacion = datetime.now()
-        self.fecha_creacion = fecha_creacion
-        self.estado = estado
+        Usuario.__init__(self, dni, nombres, ape_pat, ape_mat, genero, fecha_nac,
+                       fecha_creacion, estado, email, password)
+        self.__preferencias = preferencias
 
     def crear_cuenta(self)-> bool:
-        estado = False
+        estado_op = False
+        database = sqlite3.connect("linioexp_parcial_lab3.db")  # ABRIR CONEXION CON BASE DE DATOS
         try:
-            database = sqlite3.connect("linioexp_parcial_lab3.db", timeout=10)  # ABRIR CONEXION CON BASE DE DATOS
             cursor = database.cursor()  # OBTENER OBJETO CURSOR
-            query = "INSERT INTO clientes (email, password, estado, fecha_creacion) VALUES ('" # DEFINICION DE OPERACION
-            query += str(self.email)
-            query += "', '"
-            query += str(self.password)
-            query += "', 'Nuevo', '"
-            query += str(datetime.now())
-            query += "')"
-            cursor.execute(query)  # EJECUTA LA OPERACION
+            query = '''
+            INSERT INTO clientes(email, password, fecha_creacion, estado)
+            VALUES ('{}', '{}', '{}', '{}')
+            '''.format(self.email, self.password, datetime.now(),
+                       Cliente.LISTA_ESTADO.get("PENDIENTE"))
+            cursor.execute(query)
             database.commit()  # CONFIRMAR CAMBIOS QUERY
-            estado = True
+            estado_op = True
         except Exception as e:
             database.rollback()  # RESTAURAR ANTES DE CAMBIOS POR ERROR
-            raise e
+            print("Error: {}".format(e))
         finally:
             database.close()  # CERRAR CONEXION CON BASE DE DATOS
-        return estado
+
+        return estado_op
 
     def actualizar_datos(self)-> bool:
-        pass
+        estado_op = False
+        database = sqlite3.connect("linioexp_parcial_lab3.db")
+        try:
 
+            cursor = database.cursor()
+            query = '''
+            UPDATE clientes
+            SET documento_identidad = '{}', nombres = '{}', apellido_paterno = '{}', apellido_materno = '{}',
+            genero = '{}', fecha_nacimiento = {}, estado = '{}'
+            WHERE email = '{}'
+            '''.format(self.documento_identidad, self.nombres, self.apellido_paterno,
+                       self.apellido_materno, self.genero, self.fecha_nac,
+                       Cliente.LISTA_ESTADO.get("VALIDADO"), self.email)
+            cursor.execute(query)
+            database.commit()
+            estado_op = True
+        except Exception as e:
+            database.rollback()  # RESTAURAR ANTES DE CAMBIOS POR ERROR
+            print("Error: {}".format(e))
+        finally:
+            database.close()  # CERRAR CONEXION CON BASE DE DATOS
+
+        return estado_op
+
+    @staticmethod
     def obtener_usuario(id: str):
         usuario = None
+        try:
+            database = sqlite3.connect("linioexp_parcial_lab3.db")  # ABRIR CONEXION CON BASE DE DATOS
+            cursor = database.cursor()  # OBTENER OBJETO CURSOR
+            query = '''
+            SELECT email, password, documento_identidad, nombres, apellido_paterno, apellido_materno, genero,
+            fecha_nacimiento, fecha_creacion, estado, preferencias
+            FROM clientes WHERE email = '{}'
+            '''.format(id)
+            cursor.execute(query)
+            usuario = cursor.fetchone()
+        except Exception as e:
+            print("Error: {}".format(e))
+        finally:
+            database.close()  # CERRAR CONEXION CON BASE DE DATOS
 
         return Cliente(email=usuario[0], password=usuario[1], dni=usuario[2], nombres=usuario[3],
                        ape_pat=usuario[4], ape_mat=usuario[5], genero=usuario[6], fecha_nac=usuario[7],
