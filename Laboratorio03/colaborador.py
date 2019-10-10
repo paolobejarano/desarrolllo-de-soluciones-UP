@@ -2,52 +2,72 @@ from usuario import Usuario
 from datetime import datetime
 import sqlite3
 
-class Colaborador(Usuario):
-
+class Colaborador(object):
     def __init__(self, dni: str = None, nombres: str = None, ape_pat: str = None, ape_mat: str = None,
-                 genero: str = None, fecha_nac: datetime = None, fecha_creacion: datetime = None,
-                 estado: str = None, email: str = None, password: str = None, coberturaEntrega = None):
-        self.email = email
-        self.password = password
-        self.dni = dni
-        self.nombres = nombres
-        self.apellido_paterno = ape_pat
-        self.apellido_materno = ape_mat
-        self.genero = genero
-        self.fecha_nacimiento = fecha_nac
-        fecha_creacion = datetime.now()
-        self.fecha_creacion = fecha_creacion
-        self.estado = estado
-        self.reputacion = reputacion
-        self.cobeturaEntrega = coberturaEntrega
+                 genero: str = None, fecha_nac: datetime = None, fecha_creacion: datetime = None, estado: str = None,
+                 email: str = None, password: str = None, reputacion: float = None, cobertura: str = None):
 
-    def __str__(self):
-        pass
+        Usuario.__init__(self, dni, nombres, ape_pat, ape_mat, genero, fecha_nac, fecha_creacion, estado, email, password)
+        self.__reputacion = reputacion
+        self.__cobertura = cobertura
 
-    def calcular_reputacion(self):
-        pass
+    @property
+    def reputacion(self) -> float:
+        return self.__reputacion
 
-    def actualizar_datos(self):
-        pass
+    @property
+    def cobertura(self) -> str:
+        return self.__cobertura
 
-    def crear_cuenta(self):
-        estado = False
+    @reputacion.setter
+    def reputacion(self, new_value):
+        self.__reputacion = new_value
+
+    @cobertura.setter
+    def cobertura(self, new_value):
+        self.__cobertura = new_value
+
+    @staticmethod
+    def obtener_colaborador(id: str):
+        """Recibe un primary key de un colaborador como str. Devuelve un objeto Colaborador."""
+
+        colaborador = None
         try:
-            database = sqlite3.connect("linioexp_parcial_lab3.db", timeout=10)  # ABRIR CONEXION CON BASE DE DATOS
-            cursor = database.cursor()  # OBTENER OBJETO CURSOR
-            query = "INSERT INTO clientes (email, password, estado, fecha_creacion) VALUES ('"  # DEFINICION DE OPERACION
-            query += str(self.email)
-            query += "', '"
-            query += str(self.password)
-            query += "', 'Nuevo', '"
-            query += str(datetime.now())
-            query += "')"
-            cursor.execute(query)  # EJECUTA LA OPERACION
-            database.commit()  # CONFIRMAR CAMBIOS QUERY
-            estado = True
+            #Conexion a db
+            db = sqlite3.connect("linioexp_parcial_lab3.db")
+            #Objeto cursor
+            cursor = db.cursor()
+            query = """SELECT * FROM colaboradores WHERE email = '{}'""".format(id)
+            cursor.execute(query)
+            colaborador = cursor.fetchone()
+        except Exception as e:
+            print("Error: {}".format(e))
+        finally:
+            #cerrar conexión
+            database.close()
+
+        return Colaborador(email = colaborador[0], password = colaborador[1], dni = colaborador[2], nombres = colaborador[3],
+                       ape_pat = colaborador[4], ape_mat = colaborador[5], genero = colaborador[6], fecha_nac = colaborador[7],
+                       fecha_creacion = colaborador[8], estado = colaborador[9], reputacion = colaborador[10], cobertura = colaborador[11])
+
+
+    def actualizar_datos(self)-> bool:
+        """Actualiza los datos del objeto en la db."""
+        estado_op = False
+        database = sqlite3.connect("linioexp_parcial_lab3.db")
+        try:
+            cursor = database.cursor()
+            query = """UPDATE colaboradores SET password = '{}', documento_identidad = '{}', nombres = '{}', apellido_paterno = '{}',
+                        apellido_materno = '{}', genero = '{}', fecha_nacimiento = '{}', estado = '{}', reputacion = '{}', cobertura = '{}'
+                        WHERE email = '{}'""".format(self.documento_identidad, self.nombres, self.apellido_paterno,
+                        self.apellido_materno, self.genero, self.fecha_nac, self.estado, self.__reputacion, self.__cobertura)
+            cursor.execute(query)
+            database.commit()
+            estado_op = True
         except Exception as e:
             database.rollback()  # RESTAURAR ANTES DE CAMBIOS POR ERROR
-            raise e
+            print("Error: {}".format(e))
         finally:
             database.close()  # CERRAR CONEXION CON BASE DE DATOS
-        return estado
+
+        return estado_op
